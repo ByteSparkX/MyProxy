@@ -1,0 +1,9 @@
+MyProxy desktop packages include an unmodified Xray-core executable and data
+files downloaded from the pinned official XTLS/Xray-core GitHub Release during
+GitHub Actions builds.
+
+Upstream: https://github.com/XTLS/Xray-core
+License: Mozilla Public License 2.0
+
+See THIRD_PARTY_NOTICES.md in the source repository for exact versions and
+checksums.

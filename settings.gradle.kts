@@ -16,3 +16,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "MyProxy"
 include(":app")
+include(":desktopApp")

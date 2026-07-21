@@ -19,6 +19,11 @@ captures/
 *.aab
 outputs/
 
+# 桌面端 Xray 文件由 GitHub Actions 按平台下载并校验，不提交二进制副本。
+desktopApp/resources/windows-x64/
+desktopApp/resources/macos-x64/
+desktopApp/resources/macos-arm64/
+
 # 当前工作目录中的独立网页原型，不属于 Android 项目。
 /index.html
 /app.js

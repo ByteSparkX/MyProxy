@@ -4,11 +4,11 @@
 
 ## 当前范围
 
-当前仓库先维护 Android 客户端。iOS 与 Windows 客户端处于后续规划阶段；开始相关实现前，请先通过 Issue 讨论目录结构、核心复用边界和发布方式。
+当前仓库维护 Android 与 Compose Desktop 客户端。iOS 处于后续规划阶段；开始相关实现前，请先通过 Issue 讨论目录结构、核心复用边界和发布方式。
 
 ## 提交要求
 
-- 使用 Kotlin、Jetpack Compose 和现有分层结构，不引入广告、统计、第三方推送、账号系统或云同步。
+- 使用 Kotlin、Jetpack Compose、Compose Multiplatform 和现有分层结构，不引入广告、统计、第三方推送、账号系统或云同步。
 - 不提交真实节点、订阅 URL、UUID、密码、服务器地址、完整配置、keystore 或签名凭据。
 - 不在日志、测试数据、截图、Issue 或 Pull Request 中泄露上述信息。
 - 修改 AAR、JNI、回调接口、ABI 或 R8 规则时，必须基于实际导出和二进制内容验证。

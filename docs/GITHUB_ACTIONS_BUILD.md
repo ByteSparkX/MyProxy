@@ -1,7 +1,8 @@
-# GitHub Actions Cloud APK Build
+# GitHub Actions Cloud Build
 
 This project is designed for GitHub Actions cloud builds. The local machine is
-used for editing and committing source code; APKs are built in GitHub Actions.
+used for editing and committing source code; Android and desktop packages are
+built in GitHub Actions.
 
 Do not commit `local.properties`, keystores, passwords, real nodes, subscription
 URLs, UUIDs, or server information.
@@ -48,8 +49,8 @@ Workflow file:
 
 Triggers:
 
-- Manual: GitHub repository -> Actions -> Android Release Build -> Run workflow
-- Automatic: push tag matching `v*`, for example `v1.0.0`
+- Manual: GitHub repository -> Actions -> MyProxy Multiplatform Release -> Run workflow
+- Automatic: push tag matching `v*`, for example `v1.1.0`
 
 Build command:
 
@@ -57,18 +58,25 @@ Build command:
 ./gradlew :app:testDebugUnitTest --stacktrace
 ./gradlew :app:lintDebug --stacktrace
 ./gradlew :app:assembleRelease --stacktrace
+./gradlew :desktopApp:test :desktopApp:createDistributable --stacktrace
 ```
 
-Artifact:
+Jobs:
 
 ```text
-myproxy-release-apk
+Android: ubuntu-latest
+Windows x64: windows-2025
+macOS Intel: macos-15-intel
+macOS Apple Silicon: macos-15
 ```
 
-Download path in the workflow run:
+Actions Artifacts:
 
 ```text
-Artifacts -> myproxy-release-apk
+myproxy-android-apk
+myproxy-windows-x64
+myproxy-macos-x64
+myproxy-macos-arm64
 ```
 
 For a pushed `v*` tag, the workflow also creates a GitHub Release and attaches:
@@ -76,10 +84,21 @@ For a pushed `v*` tag, the workflow also creates a GitHub Release and attaches:
 ```text
 MyProxy-<version>-android.apk
 MyProxy-<version>-android.apk.sha256
+MyProxy-<version>-windows-x64.zip
+MyProxy-<version>-windows-x64.zip.sha256
+MyProxy-<version>-macos-x64.zip
+MyProxy-<version>-macos-x64.zip.sha256
+MyProxy-<version>-macos-arm64.zip
+MyProxy-<version>-macos-arm64.zip.sha256
 ```
 
 A manual workflow run creates the Actions Artifact only; it does not publish a
 versioned GitHub Release.
+
+The desktop jobs download the pinned official Xray-core `v26.3.27` assets from
+`XTLS/Xray-core`, verify their SHA-256 values, and package the matching binary
+for each operating system and architecture. The binaries are not committed to
+this repository.
 
 ## Required GitHub Secrets
 
@@ -126,6 +145,9 @@ Copy the contents of `keystore-base64.txt` into the GitHub secret
 5. Install it. If Android blocks installation, allow the file manager or browser
    to install unknown apps, install the APK, then disable that permission again.
 
+Desktop installation and first-run instructions are documented in
+`docs/DESKTOP.md`.
+
 ## Common Errors
 
 `Release 签名环境变量缺失`
@@ -156,3 +178,14 @@ Debug builds fail after signing changes
 
 - Debug builds should not require release signing secrets.
 - Check that signing validation is attached only to Release tasks.
+
+Desktop Xray checksum mismatch
+
+- Do not bypass the check.
+- Compare the pinned version, asset names, and digests with the official
+  `XTLS/Xray-core` Release before updating the workflow and third-party notice.
+
+macOS package opens with a Gatekeeper warning
+
+- The current package is ad-hoc signed and not notarized with Apple Developer ID.
+- Verify the Release SHA-256 and follow `docs/DESKTOP.md`.

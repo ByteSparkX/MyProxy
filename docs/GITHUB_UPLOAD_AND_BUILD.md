@@ -72,18 +72,18 @@ git push -u origin main
 
 手动构建：
 
-1. 打开 `Actions -> Android Release Build`。
+1. 打开 `Actions -> MyProxy Multiplatform Release`。
 2. 点击 `Run workflow`，选择 `main` 后运行。
-3. 构建成功后下载 `Artifacts -> myproxy-release-apk`。
+3. 构建成功后可分别下载 Android、Windows x64、macOS Intel 和 macOS Apple Silicon Artifacts。
 
 通过版本标签构建：
 
 ```powershell
-git tag -a v1.0.0 -m "v1.0.0"
-git push origin v1.0.0
+git tag -a v1.1.0 -m "v1.1.0"
+git push origin v1.1.0
 ```
 
-推送符合 `v*` 的标签后会自动触发 Release workflow。构建成功后会创建对应 GitHub Release，并附加签名 APK 与 SHA-256 文件。当前应用 `versionName` 已与 `v1.0.0` 对齐。
+推送符合 `v*` 的标签后会自动触发多平台 Release workflow。Android 与三个桌面任务全部成功后会创建对应 GitHub Release，并附加每个平台文件及 SHA-256。当前应用 `versionName` 已与 `v1.1.0` 对齐。
 
 ## 6. 安装和验收
 

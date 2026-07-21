@@ -15,8 +15,17 @@ MyProxy 使用下列第三方组件和数据。各组件仍受其原始许可证
 ## Xray-core
 
 - 上游：https://github.com/XTLS/Xray-core
-- 用途：AndroidLibXrayLite 中封装的代理核心
+- 用途：AndroidLibXrayLite 中封装的代理核心，以及桌面发布包中的官方可执行文件
 - 许可证：MPL-2.0
+
+桌面端锁定 `v26.3.27`，GitHub Actions 只从该上游 Release 下载并校验：
+
+- Windows x64：`Xray-windows-64.zip`
+  - SHA-256：`d004c39288ce9ada487c6f398c7c545f7d749e44bdfdd59dbc9f865afba4e1ad`
+- macOS Intel：`Xray-macos-64.zip`
+  - SHA-256：`f5b0471d3459eff1b82e48af0aeac186abcc3298210070afbbbd8437a4e8b203`
+- macOS Apple Silicon：`Xray-macos-arm64-v8a.zip`
+  - SHA-256：`2e93a67e8aa1936ecefb307e120830fcbd4c643ab9b1c46a2d0838d5f8409eaf`
 
 ## hev-socks5-tunnel
 

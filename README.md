@@ -1,6 +1,6 @@
 # MyProxy（我的代理）
 
-MyProxy 是一个开源 Android VPN 客户端，用于连接用户本人拥有或已获授权使用的合法服务器，帮助保护个人网络隐私。
+MyProxy 是一个开源多平台代理客户端，用于连接用户本人拥有或已获授权使用的合法服务器，帮助保护个人网络隐私。
 
 项目不集成广告、统计、第三方推送、账号系统或云同步。请勿把真实节点、订阅 URL、UUID、密码、服务器信息或签名文件提交到仓库。
 
@@ -9,16 +9,25 @@ MyProxy 是一个开源 Android VPN 客户端，用于连接用户本人拥有�
 | 平台 | 状态 |
 | --- | --- |
 | Android | 已提供 APK |
+| Windows x64 | 已提供便携包 |
+| macOS Intel | 已提供应用包 |
+| macOS Apple Silicon | 已提供应用包 |
 | iOS | 计划中 |
-| Windows | 计划中 |
 
-当前只发布 Android 版本。iOS 和 Windows 客户端属于后续规划，不代表已承诺具体发布日期。
+Android 使用系统 VPN；Windows 与 macOS 首版使用系统 HTTP、HTTPS 和 SOCKS 代理。iOS 属于后续规划，不代表已承诺具体发布日期。
 
-## 下载 Android APK
+## 下载
 
-前往 [GitHub Releases](https://github.com/ByteSparkX/MyProxy/releases) 下载最新版本中的 `MyProxy-*-android.apk`，并使用同一 Release 附带的 `.sha256` 文件核对完整性。
+前往 [GitHub Releases](https://github.com/ByteSparkX/MyProxy/releases) 下载对应平台文件，并使用同一 Release 附带的 `.sha256` 文件核对完整性：
+
+- Android：`MyProxy-*-android.apk`
+- Windows x64：`MyProxy-*-windows-x64.zip`
+- macOS Intel：`MyProxy-*-macos-x64.zip`
+- macOS Apple Silicon：`MyProxy-*-macos-arm64.zip`
 
 Android 如果阻止安装，请按系统提示临时允许当前浏览器或文件管理器“安装未知应用”；安装完成后建议关闭该权限。
+
+桌面端安装与首次启动说明见 [docs/DESKTOP.md](docs/DESKTOP.md)。macOS 当前为 ad-hoc 签名、未经过 Apple 公证，首次打开需要使用 Finder 右键“打开”。
 
 ## 功能概览
 
@@ -29,15 +38,18 @@ Android 如果阻止安装，请按系统提示临时允许当前浏览器或文
 - 分享链接、二维码与订阅导入
 - 节点选择、测延、流量状态与分应用代理
 - 开机恢复、自定义 DNS、浅色与深色主题
+- Windows 与 macOS 系统代理启停及原设置恢复
+- 桌面端本地节点保存、分享链接和订阅导入
 
 规则模式使用 [Loyalsoldier/v2ray-rules-dat](https://github.com/Loyalsoldier/v2ray-rules-dat) 数据：国内及未命中代理规则的流量直连，命中受限域名规则的流量通过所选节点。具体版本和更新流程见 [docs/ROUTING_RULES.md](docs/ROUTING_RULES.md)。
 
 ## 技术栈
 
-- Kotlin、Jetpack Compose、Material3
+- Kotlin、Jetpack Compose、Compose Multiplatform、Material3
 - Kotlin Coroutines、Room、DataStore
 - Android `VpnService`
-- Xray-core Android AAR 与 tun2socks native bridge
+- Android：Xray-core AAR 与 tun2socks native bridge
+- Desktop：官方 Xray-core 可执行文件与系统代理
 - Gradle Kotlin DSL、JDK 17
 - GitHub Actions 云端构建
 
@@ -46,7 +58,7 @@ Android 如果阻止安装，请按系统提示临时允许当前浏览器或文
 项目使用 Gradle Wrapper 和 GitHub Actions 构建，不需要安装 Android Studio。
 
 - Debug：push 到 `main` 或手动运行 `Android Debug Build`，在 Actions Artifact 下载 `myproxy-debug-apk`
-- Release：推送 `v*` 标签后运行 `Android Release Build`，构建成功会自动创建 GitHub Release，并附加签名 APK 与 SHA-256 文件
+- Release：推送 `v*` 标签后运行 `MyProxy Multiplatform Release`，分别在 Android、Windows、macOS Intel 和 macOS Apple Silicon runner 上构建，全部成功后创建 GitHub Release
 
 详细步骤见 [docs/GITHUB_ACTIONS_BUILD.md](docs/GITHUB_ACTIONS_BUILD.md)。内核更新见 [docs/UPDATE_KERNEL.md](docs/UPDATE_KERNEL.md)。
 
@@ -63,7 +75,7 @@ Android 如果阻止安装，请按系统提示临时允许当前浏览器或文
 
 ## 参与贡献
 
-欢迎提交 Android 端问题与改进。开始前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。iOS 与 Windows 当前仅在路线规划中，后续实现应使用独立的平台目录或项目，并保持协议模型与安全约束一致。
+欢迎提交 Android 与桌面端问题和改进。开始前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。iOS 当前仍在路线规划中，后续实现应使用独立平台模块，并保持协议模型与安全约束一致。
 
 ## 许可证
 

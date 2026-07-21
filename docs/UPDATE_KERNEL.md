@@ -59,24 +59,42 @@ myproxy-debug-apk
 After Debug validation passes:
 
 1. Open GitHub -> repository -> Actions.
-2. Select `Android Release Build`.
+2. Select `MyProxy Multiplatform Release`.
 3. Click `Run workflow`.
 
 Or push a version tag:
 
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag v1.1.0
+git push origin v1.1.0
 ```
 
 Artifact:
 
 ```text
-myproxy-release-apk
+myproxy-android-apk
 ```
 
 Release signing requires the GitHub Secrets documented in
 `docs/GITHUB_ACTIONS_BUILD.md`.
+
+## Update Desktop Xray-core
+
+Desktop Xray binaries are not committed. The pinned version, official asset
+names, and SHA-256 values are stored in:
+
+```text
+.github/workflows/android-release.yml
+THIRD_PARTY_NOTICES.md
+```
+
+When updating the desktop core:
+
+1. Use only an official `XTLS/Xray-core` GitHub Release.
+2. Update Windows x64, macOS Intel, and macOS Apple Silicon together.
+3. Copy each GitHub Release asset digest into both files above.
+4. Confirm `xray version` and `xray run -test -c <config>` in Actions.
+5. Build all three desktop packages; never bypass a checksum mismatch.
 
 ## API Changes to Check
 

@@ -346,11 +346,11 @@ class MyVpnService : VpnService() {
         )
 
         return NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher)
+            .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(if (connected) "我的代理 · 已连接" else "我的代理 · 正在连接")
             .setContentText(if (connected) "正在保护网络连接" else "正在建立安全连接")
             .setContentIntent(openAppIntent)
-            .addAction(R.drawable.ic_launcher, "断开", stopVpnIntent)
+            .addAction(R.drawable.ic_notification, "断开", stopVpnIntent)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)

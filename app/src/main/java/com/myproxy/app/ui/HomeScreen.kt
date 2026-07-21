@@ -9,6 +9,8 @@ import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,21 +22,39 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -45,8 +65,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -241,120 +264,46 @@ fun HomeScreen(
         )
     }
 
+    val selectedNode = nodes.firstOrNull { node -> node.id == selectedNodeId }
+
     // 主页只负责节点选择、授权和发送启停请求，真实链路生命周期由 MyVpnService 管理。
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = {
-                    Text(text = stringResource(id = R.string.app_name))
-                },
-            )
-        },
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            val errorMessage = vpnState.errorMessage
-
-            Text(
-                text = when (vpnState.uiState) {
-                    VpnUiState.DISCONNECTED -> "未连接"
-                    VpnUiState.CONNECTING -> "连接中"
-                    VpnUiState.CONNECTED -> "已连接"
-                    VpnUiState.ERROR -> "出错"
-                },
-                style = MaterialTheme.typography.titleMedium,
-            )
-
-            if (vpnState.uiState == VpnUiState.ERROR && errorMessage != null) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = errorMessage,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            TrafficStatsPanel(
-                uploadSpeed = trafficStats.uploadSpeed,
-                downloadSpeed = trafficStats.downloadSpeed,
-                uploadTotal = trafficStats.uploadTotal,
-                downloadTotal = trafficStats.downloadTotal,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .widthIn(max = 560.dp),
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .widthIn(max = 560.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    text = "节点",
-                    style = MaterialTheme.typography.titleMedium,
-                )
-                Row {
-                    TextButton(onClick = { mainViewModel.testAllLatencies() }) {
-                        Text(text = "全部测延")
-                    }
-                    TextButton(onClick = onOpenImport) {
-                        Text(text = "导入")
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            if (nodes.isEmpty()) {
-                EmptyNodeState(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .widthIn(max = 560.dp),
-                )
-            } else {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .widthIn(max = 560.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    items(
-                        items = nodes,
-                        key = { node -> node.id },
-                    ) { node ->
-                        NodeSelectionRow(
-                            node = node,
-                            selected = node.id == selectedNodeId,
-                            latencyState = latencyResults[node.id],
-                            onClick = { selectNode(node) },
-                            onTestLatency = { mainViewModel.testNodeLatency(node) },
-                            onEdit = { editNode(node) },
-                            onDelete = { deleteNode(node) },
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_brand_mark),
+                            contentDescription = null,
+                            modifier = Modifier.size(30.dp),
+                            contentScale = ContentScale.Fit,
+                        )
+                        Text(
+                            text = stringResource(id = R.string.app_name),
+                            style = MaterialTheme.typography.titleLarge,
                         )
                     }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .widthIn(max = 560.dp)
-                    .defaultMinSize(minHeight = 56.dp),
+                },
+                actions = {
+                    IconButton(onClick = onOpenImport) {
+                        Icon(
+                            imageVector = Icons.Filled.Add,
+                            contentDescription = "导入节点",
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ),
+            )
+        },
+        bottomBar = {
+            ConnectionActionBar(
+                state = vpnState.uiState,
                 enabled = !isConnecting,
                 onClick = {
                     if (isConnected) {
@@ -363,15 +312,286 @@ fun HomeScreen(
                         requestPermissionsThenStart()
                     }
                 },
+            )
+        },
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding),
+        ) {
+            item {
+                ConnectionOverview(
+                    state = vpnState.uiState,
+                    errorMessage = vpnState.errorMessage,
+                    selectedNode = selectedNode,
+                )
+            }
+            item {
+                Spacer(modifier = Modifier.height(12.dp))
+                TrafficStatsPanel(
+                    uploadSpeed = trafficStats.uploadSpeed,
+                    downloadSpeed = trafficStats.downloadSpeed,
+                    uploadTotal = trafficStats.uploadTotal,
+                    downloadTotal = trafficStats.downloadTotal,
+                )
+            }
+            item {
+                SectionHeader(
+                    title = "节点",
+                    subtitle = "${nodes.size} 个可用节点",
+                    onTestAll = { mainViewModel.testAllLatencies() },
+                    onImport = onOpenImport,
+                )
+            }
+            if (nodes.isEmpty()) {
+                item {
+                    EmptyNodeState(onImport = onOpenImport)
+                }
+            } else {
+                itemsIndexed(
+                    items = nodes,
+                    key = { _, node -> node.id },
+                ) { index, node ->
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        NodeSelectionRow(
+                            node = node,
+                            selected = node.id == selectedNodeId,
+                            latencyState = latencyResults[node.id],
+                            showDivider = index < nodes.lastIndex,
+                            onClick = { selectNode(node) },
+                            onTestLatency = { mainViewModel.testNodeLatency(node) },
+                            onEdit = { editNode(node) },
+                            onDelete = { deleteNode(node) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .widthIn(max = 640.dp),
+                        )
+                    }
+                }
+            }
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConnectionOverview(
+    state: VpnUiState,
+    errorMessage: String?,
+    selectedNode: ProxyNode?,
+) {
+    val statusColor = when (state) {
+        VpnUiState.CONNECTED -> MaterialTheme.colorScheme.primary
+        VpnUiState.CONNECTING -> MaterialTheme.colorScheme.tertiary
+        VpnUiState.ERROR -> MaterialTheme.colorScheme.error
+        VpnUiState.DISCONNECTED -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val statusText = when (state) {
+        VpnUiState.CONNECTED -> "已连接"
+        VpnUiState.CONNECTING -> "正在建立安全连接"
+        VpnUiState.ERROR -> "连接异常"
+        VpnUiState.DISCONNECTED -> "未连接"
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+    ) {
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 640.dp)
+                    .padding(horizontal = 20.dp, vertical = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(8.dp)
+                            .background(statusColor, CircleShape),
+                    )
+                    Text(
+                        text = statusText,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = statusColor,
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                Surface(
+                    modifier = Modifier.size(96.dp),
+                    shape = CircleShape,
+                    color = statusColor.copy(alpha = 0.12f),
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        if (state == VpnUiState.CONNECTING) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(42.dp),
+                                color = statusColor,
+                                strokeWidth = 3.dp,
+                            )
+                        } else {
+                            Icon(
+                                imageVector = if (state == VpnUiState.CONNECTED) {
+                                    Icons.Filled.CheckCircle
+                                } else {
+                                    Icons.Filled.PlayArrow
+                                },
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = statusColor,
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
                 Text(
-                    text = when (vpnState.uiState) {
-                        VpnUiState.DISCONNECTED -> "未连接 · 点击连接"
-                        VpnUiState.CONNECTING -> "连接中"
-                        VpnUiState.CONNECTED -> "已连接 · 点击断开"
-                        VpnUiState.ERROR -> "出错 · 重试连接"
+                    text = selectedNode?.remark?.ifBlank { "未命名节点" } ?: "尚未选择节点",
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = selectedNode?.let { node ->
+                        "${node.protocol.name}  ·  ${node.address}:${node.port}"
+                    } ?: "从下方列表选择一个节点",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+
+                if (state == VpnUiState.ERROR && !errorMessage.isNullOrBlank()) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        shape = MaterialTheme.shapes.small,
+                    ) {
+                        Text(
+                            text = errorMessage,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ConnectionActionBar(
+    state: VpnUiState,
+    enabled: Boolean,
+    onClick: () -> Unit,
+) {
+    val disconnecting = state == VpnUiState.CONNECTED
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 8.dp,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Button(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 640.dp)
+                    .defaultMinSize(minHeight = 52.dp),
+                enabled = enabled,
+                onClick = onClick,
+                shape = MaterialTheme.shapes.medium,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (disconnecting) {
+                        MaterialTheme.colorScheme.secondary
+                    } else {
+                        MaterialTheme.colorScheme.primary
                     },
-                    style = MaterialTheme.typography.titleLarge,
+                ),
+            ) {
+                if (state == VpnUiState.CONNECTING) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp,
+                    )
+                } else {
+                    Icon(
+                        imageVector = if (disconnecting) Icons.Filled.Close else Icons.Filled.PlayArrow,
+                        contentDescription = null,
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = when (state) {
+                        VpnUiState.DISCONNECTED -> "连接"
+                        VpnUiState.CONNECTING -> "连接中"
+                        VpnUiState.CONNECTED -> "断开连接"
+                        VpnUiState.ERROR -> "重试连接"
+                    },
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SectionHeader(
+    title: String,
+    subtitle: String,
+    onTestAll: () -> Unit,
+    onImport: () -> Unit,
+) {
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 640.dp)
+                .padding(start = 16.dp, end = 8.dp, top = 18.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = title, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            IconButton(onClick = onTestAll) {
+                Icon(
+                    imageVector = Icons.Filled.Refresh,
+                    contentDescription = "全部测延",
+                )
+            }
+            IconButton(onClick = onImport) {
+                Icon(
+                    imageVector = Icons.Filled.Add,
+                    contentDescription = "导入节点",
                 )
             }
         }
@@ -455,82 +675,139 @@ private fun NodeSelectionRow(
     node: ProxyNode,
     selected: Boolean,
     latencyState: NodeLatencyState?,
+    showDivider: Boolean,
     onClick: () -> Unit,
     onTestLatency: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = if (selected) {
-                MaterialTheme.colorScheme.primaryContainer
-            } else {
-                MaterialTheme.colorScheme.surfaceVariant
-            },
-        ),
+    var menuExpanded by remember { mutableStateOf(false) }
+    Surface(
+        modifier = modifier,
+        color = if (selected) {
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+        } else {
+            MaterialTheme.colorScheme.surface
+        },
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .clickable(onClick = onClick),
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 6.dp, top = 12.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                RadioButton(
-                    selected = selected,
-                    onClick = onClick,
-                )
+                Surface(
+                    modifier = Modifier.size(42.dp),
+                    shape = MaterialTheme.shapes.medium,
+                    color = if (selected) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.surfaceVariant
+                    },
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(
+                            text = protocolCode(node),
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (selected) {
+                                MaterialTheme.colorScheme.onPrimary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                        )
+                    }
+                }
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(start = 8.dp),
+                        .padding(horizontal = 12.dp),
                 ) {
                     // 列表展示基础识别信息，不展示 UUID、密码或订阅 URL。
                     Text(
                         text = node.remark.ifBlank { "未命名节点" },
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = MaterialTheme.typography.titleSmall,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = node.protocol.name,
+                        text = "${node.protocol.name}  ·  ${node.address}:${node.port}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
-            }
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Text(
-                text = node.address,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
                 LatencyLabel(latencyState = latencyState)
-                Row {
-                    TextButton(onClick = onTestLatency) {
-                        Text(text = "测延")
+                if (selected) {
+                    Icon(
+                        imageVector = Icons.Filled.CheckCircle,
+                        contentDescription = "已选中",
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                Box {
+                    IconButton(onClick = { menuExpanded = true }) {
+                        Icon(
+                            imageVector = Icons.Filled.MoreVert,
+                            contentDescription = "节点操作",
+                        )
                     }
-                    TextButton(onClick = onEdit) {
-                        Text(text = "编辑")
-                    }
-                    TextButton(onClick = onDelete) {
-                        Text(text = "删除")
+                    DropdownMenu(
+                        expanded = menuExpanded,
+                        onDismissRequest = { menuExpanded = false },
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(text = "测试延迟") },
+                            leadingIcon = {
+                                Icon(imageVector = Icons.Filled.Refresh, contentDescription = null)
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onTestLatency()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(text = "编辑节点") },
+                            leadingIcon = {
+                                Icon(imageVector = Icons.Filled.Edit, contentDescription = null)
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onEdit()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text(text = "删除节点") },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Filled.Delete,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                )
+                            },
+                            onClick = {
+                                menuExpanded = false
+                                onDelete()
+                            },
+                        )
                     }
                 }
+            }
+            if (showDivider) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(start = 70.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                )
             }
         }
     }
@@ -542,32 +819,73 @@ private fun TrafficStatsPanel(
     downloadSpeed: Long,
     uploadTotal: Long,
     downloadTotal: Long,
-    modifier: Modifier = Modifier,
 ) {
-    Card(modifier = modifier) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+    ) {
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.Center,
         ) {
-            Text(text = "连接状态", style = MaterialTheme.typography.titleSmall)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 640.dp)
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
             ) {
-                Text(text = "上行 ${formatSpeed(uploadSpeed)}")
-                Text(text = "下行 ${formatSpeed(downloadSpeed)}")
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(text = "已发 ${formatBytes(uploadTotal)}")
-                Text(text = "已收 ${formatBytes(downloadTotal)}")
+                Text(text = "实时流量", style = MaterialTheme.typography.titleSmall)
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    MetricItem(label = "上行速率", value = formatSpeed(uploadSpeed), modifier = Modifier.weight(1f))
+                    MetricDivider()
+                    MetricItem(label = "下行速率", value = formatSpeed(downloadSpeed), modifier = Modifier.weight(1f))
+                }
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 12.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                )
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    MetricItem(label = "本次上传", value = formatBytes(uploadTotal), modifier = Modifier.weight(1f))
+                    MetricDivider()
+                    MetricItem(label = "本次下载", value = formatBytes(downloadTotal), modifier = Modifier.weight(1f))
+                }
             }
         }
     }
+}
+
+@Composable
+private fun MetricItem(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium,
+            maxLines = 1,
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun MetricDivider() {
+    Box(
+        modifier = Modifier
+            .width(1.dp)
+            .height(42.dp)
+            .background(MaterialTheme.colorScheme.outlineVariant),
+    )
 }
 
 @Composable
@@ -613,16 +931,56 @@ private fun formatBytes(bytes: Long): String {
 
 @Composable
 private fun EmptyNodeState(
-    modifier: Modifier = Modifier,
+    onImport: () -> Unit,
 ) {
-    Box(
-        modifier = modifier,
-        contentAlignment = Alignment.Center,
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
     ) {
-        Text(
-            text = "暂无节点，请先导入订阅或添加节点",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(220.dp)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Surface(
+                modifier = Modifier.size(56.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer,
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Filled.Add,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(text = "还没有节点", style = MaterialTheme.typography.titleSmall)
+            Text(
+                text = "导入分享链接、二维码或订阅",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(14.dp))
+            Button(onClick = onImport, shape = MaterialTheme.shapes.medium) {
+                Icon(imageVector = Icons.Filled.Add, contentDescription = null)
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(text = "导入节点")
+            }
+        }
+    }
+}
+
+private fun protocolCode(node: ProxyNode): String {
+    return when (node.protocol.name) {
+        "SHADOWSOCKS" -> "SS"
+        "TROJAN" -> "TR"
+        "VMESS" -> "VM"
+        "VLESS" -> "VL"
+        else -> node.protocol.name.take(2)
     }
 }

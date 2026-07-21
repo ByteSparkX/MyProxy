@@ -4,6 +4,10 @@
     <!-- VPN 与核心本地服务后续需要网络访问权限。 -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- 摄像头仅用于扫码导入，无摄像头设备仍可使用其他导入方式。 -->
+    <uses-feature
+        android:name="android.hardware.camera"
+        android:required="false" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- targetSdk 35 下启动前台服务需要声明基础和具体类型权限。 -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />

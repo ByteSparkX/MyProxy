@@ -1,12 +1,12 @@
 # 上传 GitHub 并构建 APK
 
-本项目应上传到 GitHub 私有仓库。不要通过网页直接拖入整个文件夹，使用 Git 提交可以让 `.gitignore` 自动排除本地 keystore、APK、构建目录和无关网页文件。
+本项目可发布到 GitHub 公开仓库。不要通过网页直接拖入整个文件夹，使用 Git 提交可以让 `.gitignore` 自动排除本地 keystore、APK、构建目录和无关网页文件。
 
-## 1. 创建私有仓库
+## 1. 创建仓库
 
 1. 登录 GitHub，右上角选择 `New repository`。
 2. 输入仓库名，例如 `myproxy-android`。
-3. 选择 `Private`。
+3. 开发期间可选择 `Private`；完成敏感信息审计、许可证和第三方声明后再切换为 `Public`。
 4. 不勾选 README、`.gitignore` 或 License，创建空仓库。
 5. 保留 GitHub 显示的仓库地址，例如 `https://github.com/YOUR_GITHUB_USERNAME/myproxy-android.git`。
 
@@ -83,7 +83,7 @@ git tag -a v1.0.0 -m "v1.0.0"
 git push origin v1.0.0
 ```
 
-推送符合 `v*` 的标签后会自动触发 Release workflow。当前应用 `versionName` 已与 `v1.0.0` 对齐。
+推送符合 `v*` 的标签后会自动触发 Release workflow。构建成功后会创建对应 GitHub Release，并附加签名 APK 与 SHA-256 文件。当前应用 `versionName` 已与 `v1.0.0` 对齐。
 
 ## 6. 安装和验收
 

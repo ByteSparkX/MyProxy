@@ -6,7 +6,7 @@ The project integrates Xray-core through a local Android AAR:
 app/libs/libv2ray.aar
 ```
 
-The AAR is part of the private repository build strategy. Do not download an
+The AAR is part of the repository build strategy. Do not download an
 unknown binary from an untrusted source, and do not record real nodes,
 subscription URLs, UUIDs, passwords, or server information in this file.
 
@@ -40,7 +40,7 @@ Confirm:
 
 ## Trigger Debug Workflow
 
-After replacing the AAR and committing it to the private repository:
+After replacing the AAR and committing it to the repository:
 
 1. Open GitHub -> repository -> Actions.
 2. Select `Android Debug Build`.

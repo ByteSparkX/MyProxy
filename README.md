@@ -1,175 +1,70 @@
-# 我的代理
+# MyProxy（我的代理）
 
-这是一个仅供个人使用的 Android 网络工具 App，用于连接本人拥有或有权使用的合法服务器，保护个人隐私。
+MyProxy 是一个开源 Android VPN 客户端，用于连接用户本人拥有或已获授权使用的合法服务器，帮助保护个人网络隐私。
 
-项目不对外分发，不做商业化，不集成广告、统计、第三方推送、账号系统或云同步。仓库中不得写入真实节点、订阅 URL、UUID、密码、服务器地址、keystore 或签名密码。
+项目不集成广告、统计、第三方推送、账号系统或云同步。请勿把真实节点、订阅 URL、UUID、密码、服务器信息或签名文件提交到仓库。
+
+## 平台状态
+
+| 平台 | 状态 |
+| --- | --- |
+| Android | 已提供 APK |
+| iOS | 计划中 |
+| Windows | 计划中 |
+
+当前只发布 Android 版本。iOS 和 Windows 客户端属于后续规划，不代表已承诺具体发布日期。
+
+## 下载 Android APK
+
+前往 [GitHub Releases](https://github.com/ByteSparkX/MyProxy/releases) 下载最新版本中的 `MyProxy-*-android.apk`，并使用同一 Release 附带的 `.sha256` 文件核对完整性。
+
+Android 如果阻止安装，请按系统提示临时允许当前浏览器或文件管理器“安装未知应用”；安装完成后建议关闭该权限。
+
+## 功能概览
+
+- VLESS、VMess、Trojan、Shadowsocks 节点解析与配置生成
+- Xray-core Android AAR
+- Android `VpnService` 与 tun2socks 流量桥接
+- 规则、全局、直连三种路由模式
+- 分享链接、二维码与订阅导入
+- 节点选择、测延、流量状态与分应用代理
+- 开机恢复、自定义 DNS、浅色与深色主题
+
+规则模式使用 [Loyalsoldier/v2ray-rules-dat](https://github.com/Loyalsoldier/v2ray-rules-dat) 数据：国内及未命中代理规则的流量直连，命中受限域名规则的流量通过所选节点。具体版本和更新流程见 [docs/ROUTING_RULES.md](docs/ROUTING_RULES.md)。
 
 ## 技术栈
 
-- Android
-- Kotlin
-- Jetpack Compose
-- Material3
-- Kotlin Coroutines
-- Room
-- DataStore
+- Kotlin、Jetpack Compose、Material3
+- Kotlin Coroutines、Room、DataStore
 - Android `VpnService`
-- Xray-core Android AAR：`app/libs/libv2ray.aar`
-- tun2socks native bridge：`app/src/main/jniLibs`
-- Gradle Kotlin DSL
-- GitHub Actions
-- JDK 17
+- Xray-core Android AAR 与 tun2socks native bridge
+- Gradle Kotlin DSL、JDK 17
+- GitHub Actions 云端构建
 
-## 构建路线
+## 云端构建
 
-本项目按 GitHub 私有仓库 + GitHub Actions 云端构建 APK 的方式维护。本地电脑只负责编辑、提交和下载 APK，不作为主要构建环境。
+项目使用 Gradle Wrapper 和 GitHub Actions 构建，不需要安装 Android Studio。
 
-不需要安装 Android Studio。云端构建使用 Gradle Wrapper：
+- Debug：push 到 `main` 或手动运行 `Android Debug Build`，在 Actions Artifact 下载 `myproxy-debug-apk`
+- Release：推送 `v*` 标签后运行 `Android Release Build`，构建成功会自动创建 GitHub Release，并附加签名 APK 与 SHA-256 文件
 
-- `gradlew`
-- `gradlew.bat`
-- `gradle/wrapper/gradle-wrapper.jar`
-- `gradle/wrapper/gradle-wrapper.properties`
+详细步骤见 [docs/GITHUB_ACTIONS_BUILD.md](docs/GITHUB_ACTIONS_BUILD.md)。内核更新见 [docs/UPDATE_KERNEL.md](docs/UPDATE_KERNEL.md)。
 
-## 路由模式
+## 安全约束
 
-首页支持三种模式：
+请勿提交或在 Issue、日志中公开：
 
-- `规则`：受限域名走代理，国内及其他未命中流量直连。
-- `全局`：全部 TCP/UDP 流量走所选代理节点。
-- `直连`：全部 TCP/UDP 流量使用本地网络，不需要选择节点。
-
-规则文件来自 GitHub 上的 `Loyalsoldier/v2ray-rules-dat`，具体版本、校验值和更新要求见 `docs/ROUTING_RULES.md`。
-
-## GitHub Actions
-
-Debug workflow:
-
-```text
-.github/workflows/android-debug.yml
-```
-
-触发方式：
-
-- 手动运行 `Android Debug Build`
-- push 到 `main`
-
-Artifact：
-
-```text
-myproxy-debug-apk
-```
-
-Release workflow:
-
-```text
-.github/workflows/android-release.yml
-```
-
-触发方式：
-
-- 手动运行 `Android Release Build`
-- push tag `v*`，例如 `v1.0.0`
-
-Artifact：
-
-```text
-myproxy-release-apk
-```
-
-下载 APK：
-
-1. 打开 GitHub 仓库。
-2. 进入 `Actions`。
-3. 打开成功的 workflow run。
-4. 在 `Artifacts` 下载对应 APK artifact。
-5. 解压 zip 得到 APK。
-
-## Release 签名
-
-Release APK 在 GitHub Actions 中签名。需要在 GitHub 仓库 Secrets 中配置：
-
-- `KEYSTORE_BASE64`
-- `KEYSTORE_PASSWORD`
-- `KEY_ALIAS`
-- `KEY_PASSWORD`
-
-详细说明见：
-
-```text
-docs/GITHUB_ACTIONS_BUILD.md
-docs/GITHUB_UPLOAD_AND_BUILD.md
-docs/GITHUB_SECRETS.md
-```
-
-不要提交：
-
-- `keystore.properties`
-- `*.jks`
-- `*.keystore`
-- keystore Base64 文本
-- 密码或 alias 记录
-
-## 敏感信息约束
-
-不得提交：
-
-- 真实节点链接
-- 订阅 URL
-- UUID
-- 密码
-- 服务器地址
+- 真实节点链接、订阅 URL、UUID、密码和服务器地址
 - 完整 Xray JSON 配置
-- keystore 或签名配置
+- `local.properties`、`keystore.properties`
+- `*.jks`、`*.keystore`、keystore Base64 或签名密码
 
-日志中也不得打印完整节点链接、订阅 URL、二维码原文、UUID、密码或完整配置 JSON。
+安全问题请按 [SECURITY.md](SECURITY.md) 私下报告。
 
-## 内核更新
+## 参与贡献
 
-Xray-core AAR 更新流程见：
+欢迎提交 Android 端问题与改进。开始前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。iOS 与 Windows 当前仅在路线规划中，后续实现应使用独立的平台目录或项目，并保持协议模型与安全约束一致。
 
-```text
-docs/UPDATE_KERNEL.md
-```
+## 许可证
 
-替换 `app/libs/libv2ray.aar` 后必须重新检查：
-
-- AAR 真实导出的包名、类名和方法签名。
-- `app/proguard-rules.pro` keep 规则。
-- `app/build.gradle.kts` ABI filters。
-- `app/src/main/jniLibs` tun2socks ABI 是否匹配。
-
-## 本地可选检查
-
-本地只建议做轻量检查：
-
-```powershell
-.\gradlew.bat :app:compileDebugKotlin --stacktrace
-```
-
-Release 完整构建、R8、签名和 APK Artifact 以 GitHub Actions 为准。
-
-## 常见问题
-
-Debug Artifact 找不到：
-
-- 确认 `Android Debug Build` workflow 成功。
-- 打开对应 run 底部的 `Artifacts`。
-
-Release 构建提示签名环境变量缺失：
-
-- 检查 GitHub Secrets 是否包含 `KEYSTORE_BASE64`、`KEYSTORE_PASSWORD`、`KEY_ALIAS`、`KEY_PASSWORD`。
-- 确认 workflow 已把 `KEYSTORE_BASE64` 解码为 `KEYSTORE_FILE`。
-
-Release 安装失败：
-
-- 检查 APK 是否来自成功的 Release workflow。
-- 检查签名 keystore 是否和旧版本一致。
-- 检查 Android 设备是否允许安装未知来源应用。
-
-能连接但没有流量：
-
-- 检查 VPN 权限和前台通知。
-- 检查本地 SOCKS 入站 `127.0.0.1:10808`。
-- 检查 tun2socks 是否启动。
-- 检查分应用代理和自定义 DNS 设置。
+本项目源代码以 [GNU General Public License v3.0 only](LICENSE) 发布。仓库包含或依赖不同许可证的第三方组件和数据，详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

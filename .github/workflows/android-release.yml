@@ -144,7 +144,7 @@ jobs:
             "https://github.com/XTLS/Xray-core/releases/download/${XRAY_VERSION}/${{ matrix.xray_asset }}" \
             --output "$archive"
           if command -v sha256sum >/dev/null 2>&1; then
-            echo "${{ matrix.xray_sha256 }}  $archive" | sha256sum --check
+            echo "${{ matrix.xray_sha256 }}  $archive" | sha256sum -c
           else
             test "$(shasum -a 256 "$archive" | awk '{print $1}')" = "${{ matrix.xray_sha256 }}"
           fi

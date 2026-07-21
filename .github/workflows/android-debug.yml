@@ -40,6 +40,9 @@ jobs:
       - name: Run Android lint
         run: ./gradlew :app:lintDebug --stacktrace
 
+      - name: Run unit tests
+        run: ./gradlew :app:testDebugUnitTest --stacktrace
+
       - name: Build Debug APK
         run: ./gradlew :app:assembleDebug --stacktrace
 

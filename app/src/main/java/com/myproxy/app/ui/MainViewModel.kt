@@ -8,6 +8,7 @@ import com.myproxy.app.core.ConfigBuilder
 import com.myproxy.app.data.NodeRepository
 import com.myproxy.app.data.SettingsRepository
 import com.myproxy.app.model.ProxyNode
+import com.myproxy.app.model.RoutingMode
 import com.myproxy.app.service.TrafficStatsRepository
 import com.myproxy.app.service.TrafficStatsState
 import com.myproxy.app.service.VpnConnectionState
@@ -52,6 +53,13 @@ class MainViewModel(
             initialValue = null,
         )
 
+    val routingMode: StateFlow<RoutingMode> = settingsRepository.routingMode
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5_000),
+            initialValue = RoutingMode.RULE,
+        )
+
     // VPN 服务通过单例 StateFlow 上报真实连接状态，UI 只订阅这一份状态。
     val connectionState: StateFlow<VpnState> = VpnConnectionState.state
         .stateIn(
@@ -74,6 +82,13 @@ class MainViewModel(
         viewModelScope.launch {
             settingsRepository.setSelectedNodeId(node.id)
             AppLog.i(TAG, "已选择节点：remark=${node.remark} protocol=${node.protocol}")
+        }
+    }
+
+    fun setRoutingMode(mode: RoutingMode) {
+        viewModelScope.launch {
+            settingsRepository.setRoutingMode(mode)
+            AppLog.i(TAG, "已切换路由模式：mode=$mode")
         }
     }
 
@@ -115,11 +130,23 @@ class MainViewModel(
         }
     }
 
-    suspend fun hasSelectedNode(): Boolean {
-        return settingsRepository.getSelectedNodeId() != null
+    suspend fun canStartConnection(): Boolean {
+        return settingsRepository.getRoutingMode() == RoutingMode.DIRECT ||
+            settingsRepository.getSelectedNodeId() != null
     }
 
-    suspend fun buildSelectedNodeConfig(): BuildConfigResult {
+    suspend fun buildConnectionConfig(): BuildConfigResult {
+        val routingMode = settingsRepository.getRoutingMode()
+        val dnsServers = settingsRepository.getCustomDnsServers()
+        if (routingMode == RoutingMode.DIRECT) {
+            return runCatching {
+                BuildConfigResult.Success(ConfigBuilder.buildDirect(dnsServers))
+            }.getOrElse { error ->
+                AppLog.e(TAG, "直连配置生成失败。", error)
+                BuildConfigResult.Failure(error.message ?: "直连配置生成失败")
+            }
+        }
+
         val nodeId = settingsRepository.getSelectedNodeId()
             ?: return BuildConfigResult.Failure("请先选择一个节点")
 
@@ -131,11 +158,15 @@ class MainViewModel(
 
         return runCatching {
             // 只记录非敏感字段，完整配置包含密码/UUID，不能写入日志。
-            AppLog.i(TAG, "准备使用节点连接：remark=${node.remark} protocol=${node.protocol}")
+            AppLog.i(
+                TAG,
+                "准备使用节点连接：remark=${node.remark} protocol=${node.protocol} mode=$routingMode",
+            )
             BuildConfigResult.Success(
                 ConfigBuilder.build(
                     node = node,
-                    dnsServers = settingsRepository.getCustomDnsServers(),
+                    dnsServers = dnsServers,
+                    routingMode = routingMode,
                 ),
             )
         }.getOrElse { error ->

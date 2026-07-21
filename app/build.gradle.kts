@@ -132,6 +132,10 @@ android {
         compose = true
     }
 
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
+
 }
 
 dependencies {
@@ -159,6 +163,7 @@ dependencies {
     implementation(libs.okhttp)
 
     ksp(libs.androidx.room.compiler)
+    testImplementation(libs.junit)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }
 

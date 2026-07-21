@@ -9,6 +9,7 @@ import com.myproxy.app.core.AppLog
 import com.myproxy.app.core.ConfigBuilder
 import com.myproxy.app.data.NodeRepository
 import com.myproxy.app.data.SettingsRepository
+import com.myproxy.app.model.RoutingMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -28,15 +29,22 @@ class BootReceiver : BroadcastReceiver() {
                 } else if (VpnService.prepare(appContext) != null) {
                     AppLog.w(TAG, "VPN 尚未授权，无法在开机后自动恢复。")
                 } else {
+                    val routingMode = settingsRepository.getRoutingMode()
                     val nodeId = settingsRepository.getSelectedNodeId()
                     val node = nodeId?.let { NodeRepository.getInstance(appContext).getById(it) }
-                    if (node == null) {
+                    if (routingMode != RoutingMode.DIRECT && node == null) {
                         AppLog.w(TAG, "没有可恢复的选中节点。")
                     } else {
-                        val configJson = ConfigBuilder.build(
-                            node = node,
-                            dnsServers = settingsRepository.getCustomDnsServers(),
-                        )
+                        val dnsServers = settingsRepository.getCustomDnsServers()
+                        val configJson = if (routingMode == RoutingMode.DIRECT) {
+                            ConfigBuilder.buildDirect(dnsServers)
+                        } else {
+                            ConfigBuilder.build(
+                                node = requireNotNull(node),
+                                dnsServers = dnsServers,
+                                routingMode = routingMode,
+                            )
+                        }
                         ContextCompat.startForegroundService(
                             appContext,
                             Intent(appContext, MyVpnService::class.java).apply {
@@ -44,7 +52,11 @@ class BootReceiver : BroadcastReceiver() {
                                 putExtra(MyVpnService.EXTRA_CONFIG_JSON, configJson)
                             },
                         )
-                        AppLog.i(TAG, "已请求开机恢复连接：remark=${node.remark} protocol=${node.protocol}")
+                        AppLog.i(
+                            TAG,
+                            "已请求开机恢复连接：mode=$routingMode" +
+                                node?.let { " remark=${it.remark} protocol=${it.protocol}" }.orEmpty(),
+                        )
                     }
                 }
             }.onFailure { error ->

@@ -31,6 +31,16 @@
 - `gradle/wrapper/gradle-wrapper.jar`
 - `gradle/wrapper/gradle-wrapper.properties`
 
+## 路由模式
+
+首页支持三种模式：
+
+- `规则`：受限域名走代理，国内及其他未命中流量直连。
+- `全局`：全部 TCP/UDP 流量走所选代理节点。
+- `直连`：全部 TCP/UDP 流量使用本地网络，不需要选择节点。
+
+规则文件来自 GitHub 上的 `Loyalsoldier/v2ray-rules-dat`，具体版本、校验值和更新要求见 `docs/ROUTING_RULES.md`。
+
 ## GitHub Actions
 
 Debug workflow:

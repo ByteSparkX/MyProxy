@@ -3,6 +3,7 @@ package com.myproxy.app.core
 import com.myproxy.app.BuildConfig
 import com.myproxy.app.model.ProtocolType
 import com.myproxy.app.model.ProxyNode
+import com.myproxy.app.model.RoutingMode
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -29,19 +30,38 @@ object ConfigBuilder {
     fun build(
         node: ProxyNode,
         dnsServers: List<String> = DEFAULT_DNS_SERVERS,
+        routingMode: RoutingMode = RoutingMode.RULE,
     ): String {
         validateCommon(node)
-        AppLog.i(TAG, "生成 Xray 配置：remark=${node.remark} protocol=${node.protocol}")
+        require(routingMode != RoutingMode.DIRECT) { "直连模式不需要代理节点" }
+        AppLog.i(
+            TAG,
+            "生成 Xray 配置：remark=${node.remark} protocol=${node.protocol} mode=$routingMode",
+        )
+        return buildConfig(node, routingMode, dnsServers)
+    }
 
+    fun buildDirect(
+        dnsServers: List<String> = DEFAULT_DNS_SERVERS,
+    ): String {
+        AppLog.i(TAG, "生成 Xray 直连配置。")
+        return buildConfig(node = null, routingMode = RoutingMode.DIRECT, dnsServers = dnsServers)
+    }
+
+    private fun buildConfig(
+        node: ProxyNode?,
+        routingMode: RoutingMode,
+        dnsServers: List<String>,
+    ): String {
         val config = buildJsonObject {
             // log 控制核心日志级别，不包含节点敏感信息。
             put("log", buildLog())
             // inbounds 提供给 tun2socks 连接的本地 SOCKS 入站。
             put("inbounds", buildInbounds())
             // outbounds 包含目标代理、直连和阻断三类出口。
-            put("outbounds", buildOutbounds(node))
-            // routing 决定 DNS、私有地址等流量如何分流。
-            put("routing", buildRouting())
+            put("outbounds", buildOutbounds(node, routingMode))
+            // routing 根据规则、全局或直连模式选择出口。
+            put("routing", buildRouting(routingMode))
             // dns 提供基础解析服务器，后续可按设置扩展。
             put("dns", buildDns(dnsServers.ifEmpty { DEFAULT_DNS_SERVERS }))
         }
@@ -63,11 +83,23 @@ object ConfigBuilder {
                 put("udp", true)
                 put("auth", "noauth")
             })
+            // tun2socks 主要传入 IP，嗅探仅用于恢复域名并参与路由判断。
+            put("sniffing", buildJsonObject {
+                put("enabled", true)
+                put("destOverride", buildJsonArray {
+                    add("http")
+                    add("tls")
+                    add("quic")
+                })
+                put("routeOnly", true)
+            })
         })
     }
 
-    private fun buildOutbounds(node: ProxyNode): JsonArray = buildJsonArray {
-        add(buildProxyOutbound(node))
+    private fun buildOutbounds(node: ProxyNode?, routingMode: RoutingMode): JsonArray = buildJsonArray {
+        if (routingMode != RoutingMode.DIRECT) {
+            add(buildProxyOutbound(requireNotNull(node) { "代理模式缺少节点" }))
+        }
         add(buildJsonObject {
             put("tag", OUTBOUND_DIRECT_TAG)
             put("protocol", "freedom")
@@ -240,16 +272,9 @@ object ConfigBuilder {
         }
     }
 
-    private fun buildRouting(): JsonObject = buildJsonObject {
-        put("domainStrategy", "AsIs")
+    private fun buildRouting(routingMode: RoutingMode): JsonObject = buildJsonObject {
+        put("domainStrategy", if (routingMode == RoutingMode.RULE) "IPIfNonMatch" else "AsIs")
         put("rules", buildJsonArray {
-            add(buildJsonObject {
-                put("type", "field")
-                put("ip", buildJsonArray {
-                    add("geoip:private")
-                })
-                put("outboundTag", OUTBOUND_DIRECT_TAG)
-            })
             add(buildJsonObject {
                 put("type", "field")
                 put("protocol", buildJsonArray {
@@ -257,7 +282,42 @@ object ConfigBuilder {
                 })
                 put("outboundTag", OUTBOUND_BLOCK_TAG)
             })
+
+            when (routingMode) {
+                RoutingMode.RULE -> {
+                    // 黑名单分流：仅 GFW 列表命中项走代理，其余流量默认直连。
+                    add(buildJsonObject {
+                        put("type", "field")
+                        put("ip", buildJsonArray { add("geoip:private") })
+                        put("outboundTag", OUTBOUND_DIRECT_TAG)
+                    })
+                    add(buildJsonObject {
+                        put("type", "field")
+                        put("domain", buildJsonArray { add("geosite:gfw") })
+                        put("outboundTag", OUTBOUND_PROXY_TAG)
+                    })
+                    add(buildJsonObject {
+                        put("type", "field")
+                        put("domain", buildJsonArray { add("geosite:cn") })
+                        put("outboundTag", OUTBOUND_DIRECT_TAG)
+                    })
+                    add(buildJsonObject {
+                        put("type", "field")
+                        put("ip", buildJsonArray { add("geoip:cn") })
+                        put("outboundTag", OUTBOUND_DIRECT_TAG)
+                    })
+                    add(buildCatchAllRule(OUTBOUND_DIRECT_TAG))
+                }
+                RoutingMode.GLOBAL -> add(buildCatchAllRule(OUTBOUND_PROXY_TAG))
+                RoutingMode.DIRECT -> add(buildCatchAllRule(OUTBOUND_DIRECT_TAG))
+            }
         })
+    }
+
+    private fun buildCatchAllRule(outboundTag: String): JsonObject = buildJsonObject {
+        put("type", "field")
+        put("network", "tcp,udp")
+        put("outboundTag", outboundTag)
     }
 
     private fun buildDns(dnsServers: List<String>): JsonObject = buildJsonObject {

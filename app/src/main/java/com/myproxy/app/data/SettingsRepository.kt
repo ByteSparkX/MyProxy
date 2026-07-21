@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.myproxy.app.model.RoutingMode
 import java.net.Inet6Address
 import java.net.InetAddress
 import kotlinx.coroutines.flow.Flow
@@ -23,6 +24,11 @@ class SettingsRepository private constructor(
     // 当前选中的节点 id，只保存本地数据库主键，不保存节点密码或订阅信息。
     val selectedNodeId: Flow<Long?> = dataStore.data.map { preferences ->
         preferences[KEY_SELECTED_NODE_ID]?.takeIf { it > 0L }
+    }
+
+    // 默认使用规则模式，兼顾国内访问速度和代理流量消耗。
+    val routingMode: Flow<RoutingMode> = dataStore.data.map { preferences ->
+        RoutingMode.fromValue(preferences[KEY_ROUTING_MODE])
     }
 
     val appProxyMode: Flow<AppProxyMode> = dataStore.data.map { preferences ->
@@ -42,6 +48,8 @@ class SettingsRepository private constructor(
     }
 
     suspend fun getSelectedNodeId(): Long? = selectedNodeId.first()
+
+    suspend fun getRoutingMode(): RoutingMode = routingMode.first()
 
     suspend fun getAppProxySettings(): AppProxySettings {
         return AppProxySettings(
@@ -63,6 +71,12 @@ class SettingsRepository private constructor(
     suspend fun clearSelectedNodeId() {
         dataStore.edit { preferences ->
             preferences.remove(KEY_SELECTED_NODE_ID)
+        }
+    }
+
+    suspend fun setRoutingMode(mode: RoutingMode) {
+        dataStore.edit { preferences ->
+            preferences[KEY_ROUTING_MODE] = mode.value
         }
     }
 
@@ -97,6 +111,7 @@ class SettingsRepository private constructor(
 
     companion object {
         private val KEY_SELECTED_NODE_ID = longPreferencesKey("selected_node_id")
+        private val KEY_ROUTING_MODE = stringPreferencesKey("routing_mode")
         private val KEY_APP_PROXY_MODE = stringPreferencesKey("app_proxy_mode")
         private val KEY_SELECTED_APP_PACKAGES = stringSetPreferencesKey("selected_app_packages")
         private val KEY_BOOT_START_ENABLED = booleanPreferencesKey("boot_start_enabled")

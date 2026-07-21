@@ -50,6 +50,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -78,6 +81,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.myproxy.app.R
 import com.myproxy.app.core.AppLog
 import com.myproxy.app.model.ProxyNode
+import com.myproxy.app.model.RoutingMode
 import com.myproxy.app.service.MyVpnService
 import com.myproxy.app.service.VpnUiState
 import kotlinx.coroutines.launch
@@ -94,6 +98,7 @@ fun HomeScreen(
     val coroutineScope = rememberCoroutineScope()
     val nodes by mainViewModel.nodes.collectAsStateWithLifecycle()
     val selectedNodeId by mainViewModel.selectedNodeId.collectAsStateWithLifecycle()
+    val routingMode by mainViewModel.routingMode.collectAsStateWithLifecycle()
     val vpnState by mainViewModel.connectionState.collectAsStateWithLifecycle()
     val trafficStats by mainViewModel.trafficStats.collectAsStateWithLifecycle()
     val latencyResults by mainViewModel.latencyResults.collectAsStateWithLifecycle()
@@ -120,8 +125,8 @@ fun HomeScreen(
         }
     }
 
-    suspend fun buildSelectedNodeConfig(): String? {
-        return when (val result = mainViewModel.buildSelectedNodeConfig()) {
+    suspend fun buildConnectionConfig(): String? {
+        return when (val result = mainViewModel.buildConnectionConfig()) {
             is MainViewModel.BuildConfigResult.Success -> result.configJson
             is MainViewModel.BuildConfigResult.Failure -> {
                 mainViewModel.setError(result.message)
@@ -134,7 +139,7 @@ fun HomeScreen(
     fun startSelectedNodeFlow() {
         coroutineScope.launch {
             mainViewModel.setConnecting()
-            val configJson = buildSelectedNodeConfig() ?: return@launch
+            val configJson = buildConnectionConfig() ?: return@launch
             startVpnFlow(configJson)
         }
     }
@@ -156,7 +161,7 @@ fun HomeScreen(
         contract = ActivityResultContracts.StartActivityForResult(),
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            // 用户同意 VPN 授权后，再读取当前选中节点并生成动态配置。
+            // 用户同意 VPN 授权后，再读取路由模式和节点并生成动态配置。
             startSelectedNodeFlow()
         } else {
             mainViewModel.setDisconnected()
@@ -165,7 +170,7 @@ fun HomeScreen(
     }
 
     suspend fun requestVpnPermissionThenStart() {
-        if (!mainViewModel.hasSelectedNode()) {
+        if (!mainViewModel.canStartConnection()) {
             Toast.makeText(context, "请先选择一个节点", Toast.LENGTH_SHORT).show()
             return
         }
@@ -191,7 +196,7 @@ fun HomeScreen(
 
     fun requestPermissionsThenStart() {
         coroutineScope.launch {
-            if (!mainViewModel.hasSelectedNode()) {
+            if (!mainViewModel.canStartConnection()) {
                 Toast.makeText(context, "请先选择一个节点", Toast.LENGTH_SHORT).show()
                 return@launch
             }
@@ -325,6 +330,14 @@ fun HomeScreen(
                     state = vpnState.uiState,
                     errorMessage = vpnState.errorMessage,
                     selectedNode = selectedNode,
+                    routingMode = routingMode,
+                )
+            }
+            item {
+                RoutingModeSelector(
+                    selectedMode = routingMode,
+                    enabled = !isConnecting && !isConnected,
+                    onModeSelected = mainViewModel::setRoutingMode,
                 )
             }
             item {
@@ -385,6 +398,7 @@ private fun ConnectionOverview(
     state: VpnUiState,
     errorMessage: String?,
     selectedNode: ProxyNode?,
+    routingMode: RoutingMode,
 ) {
     val statusColor = when (state) {
         VpnUiState.CONNECTED -> MaterialTheme.colorScheme.primary
@@ -462,15 +476,23 @@ private fun ConnectionOverview(
                 Spacer(modifier = Modifier.height(18.dp))
 
                 Text(
-                    text = selectedNode?.remark?.ifBlank { "未命名节点" } ?: "尚未选择节点",
+                    text = if (routingMode == RoutingMode.DIRECT) {
+                        "本地网络直连"
+                    } else {
+                        selectedNode?.remark?.ifBlank { "未命名节点" } ?: "尚未选择节点"
+                    },
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    text = selectedNode?.let { node ->
-                        "${node.protocol.name}  ·  ${node.address}:${node.port}"
-                    } ?: "从下方列表选择一个节点",
+                    text = if (routingMode == RoutingMode.DIRECT) {
+                        "不使用代理节点"
+                    } else {
+                        selectedNode?.let { node ->
+                            "${node.protocol.name}  ·  ${node.address}:${node.port}"
+                        } ?: "从下方列表选择一个节点"
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -492,6 +514,64 @@ private fun ConnectionOverview(
                     }
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RoutingModeSelector(
+    selectedMode: RoutingMode,
+    enabled: Boolean,
+    onModeSelected: (RoutingMode) -> Unit,
+) {
+    val modes = RoutingMode.entries
+    val description = when (selectedMode) {
+        RoutingMode.RULE -> "仅受限网站走代理，国内及其他网站直连"
+        RoutingMode.GLOBAL -> "全部网络流量通过所选代理节点"
+        RoutingMode.DIRECT -> "全部流量使用本地网络，不经过代理节点"
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 640.dp)
+                .padding(horizontal = 20.dp, vertical = 14.dp),
+        ) {
+            Text(
+                text = "代理模式",
+                style = MaterialTheme.typography.titleSmall,
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                modes.forEachIndexed { index, mode ->
+                    SegmentedButton(
+                        selected = selectedMode == mode,
+                        onClick = { onModeSelected(mode) },
+                        enabled = enabled,
+                        shape = SegmentedButtonDefaults.itemShape(index = index, count = modes.size),
+                        label = {
+                            Text(
+                                text = when (mode) {
+                                    RoutingMode.RULE -> "规则"
+                                    RoutingMode.GLOBAL -> "全局"
+                                    RoutingMode.DIRECT -> "直连"
+                                },
+                            )
+                        },
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = if (enabled) description else "$description，断开后可切换",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

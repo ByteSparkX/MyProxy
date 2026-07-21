@@ -143,10 +143,10 @@ jobs:
           curl --fail --location --retry 3 \
             "https://github.com/XTLS/Xray-core/releases/download/${XRAY_VERSION}/${{ matrix.xray_asset }}" \
             --output "$archive"
-          if command -v sha256sum >/dev/null 2>&1; then
-            echo "${{ matrix.xray_sha256 }}  $archive" | sha256sum -c
-          else
+          if [[ "$RUNNER_OS" == "macOS" ]]; then
             test "$(shasum -a 256 "$archive" | awk '{print $1}')" = "${{ matrix.xray_sha256 }}"
+          else
+            echo "${{ matrix.xray_sha256 }}  $archive" | sha256sum -c
           fi
           mkdir -p "$unpacked" "$resources"
           unzip -q "$archive" -d "$unpacked"

@@ -1,0 +1,12 @@
+* text=auto
+
+# Android 与 Xray 二进制资源禁止换行转换。
+*.aar binary
+*.dat binary
+*.jar binary
+*.so binary
+
+# Linux 云构建入口和 workflow 统一使用 LF。
+gradlew text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf

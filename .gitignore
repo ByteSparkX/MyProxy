@@ -1,0 +1,26 @@
+*.iml
+.gradle/
+.kotlin/
+build/
+local.properties
+.idea/
+.DS_Store
+
+keystore.properties
+*.jks
+*.keystore
+keystore-base64.txt
+.env
+.env.*
+
+app/build/
+captures/
+*.apk
+*.aab
+outputs/
+
+# 当前工作目录中的独立网页原型，不属于 Android 项目。
+/index.html
+/app.js
+/styles.css
+/assets/

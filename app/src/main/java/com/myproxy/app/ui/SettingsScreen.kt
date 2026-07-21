@@ -255,7 +255,10 @@ private fun SettingsGroupSurface(content: @Composable () -> Unit) {
                 .widthIn(max = 640.dp),
             color = MaterialTheme.colorScheme.surface,
         ) {
-            content()
+            // Surface 默认按层叠方式放置多个子项，这里必须显式纵向排列设置内容。
+            Column {
+                content()
+            }
         }
     }
 }

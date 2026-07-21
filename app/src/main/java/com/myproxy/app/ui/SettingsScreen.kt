@@ -270,6 +270,7 @@ private fun SettingSwitchRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .defaultMinSize(minHeight = 76.dp)
             .clickable { onCheckedChange(!checked) }
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -278,8 +279,12 @@ private fun SettingSwitchRow(
             modifier = Modifier
                 .weight(1f)
                 .padding(end = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            Text(text = title, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+            )
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodySmall,
@@ -303,6 +308,7 @@ private fun DnsSettingBlock(
 ) {
     Column(modifier = Modifier.padding(16.dp)) {
         Text(text = "自定义 DNS", style = MaterialTheme.typography.bodyLarge)
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = "支持多个 IPv4 或 IPv6 地址，使用逗号、空格或换行分隔",
             style = MaterialTheme.typography.bodySmall,

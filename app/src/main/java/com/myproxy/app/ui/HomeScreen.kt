@@ -11,7 +11,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,52 +26,35 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -91,7 +73,6 @@ private const val TAG = "HomeScreen"
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onOpenImport: () -> Unit,
     mainViewModel: MainViewModel = viewModel(),
 ) {
     val context = LocalContext.current
@@ -101,11 +82,8 @@ fun HomeScreen(
     val routingMode by mainViewModel.routingMode.collectAsStateWithLifecycle()
     val vpnState by mainViewModel.connectionState.collectAsStateWithLifecycle()
     val trafficStats by mainViewModel.trafficStats.collectAsStateWithLifecycle()
-    val latencyResults by mainViewModel.latencyResults.collectAsStateWithLifecycle()
     val isConnecting = vpnState.uiState == VpnUiState.CONNECTING
     val isConnected = vpnState.uiState == VpnUiState.CONNECTED
-    var editingNode by remember { mutableStateOf<ProxyNode?>(null) }
-    var pendingDeleteNode by remember { mutableStateOf<ProxyNode?>(null) }
 
     fun startVpnFlow(configJson: String) {
         runCatching {
@@ -221,57 +199,9 @@ fun HomeScreen(
         }
     }
 
-    fun selectNode(node: ProxyNode) {
-        mainViewModel.selectNode(node)
-    }
-
-    fun deleteNode(node: ProxyNode) {
-        pendingDeleteNode = node
-    }
-
-    fun editNode(node: ProxyNode) {
-        editingNode = node
-    }
-
-    editingNode?.let { node ->
-        NodeEditDialog(
-            node = node,
-            onDismiss = { editingNode = null },
-            onSave = { updatedNode ->
-                mainViewModel.updateNode(updatedNode)
-                editingNode = null
-                Toast.makeText(context, "节点已更新，下次连接生效", Toast.LENGTH_SHORT).show()
-            },
-        )
-    }
-
-    pendingDeleteNode?.let { node ->
-        AlertDialog(
-            onDismissRequest = { pendingDeleteNode = null },
-            title = { Text(text = "删除节点") },
-            text = { Text(text = "确定删除“${node.remark.ifBlank { "未命名节点" }}”吗？") },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        mainViewModel.deleteNode(node)
-                        pendingDeleteNode = null
-                        Toast.makeText(context, "已删除节点", Toast.LENGTH_SHORT).show()
-                    },
-                ) {
-                    Text(text = "删除")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingDeleteNode = null }) {
-                    Text(text = "取消")
-                }
-            },
-        )
-    }
-
     val selectedNode = nodes.firstOrNull { node -> node.id == selectedNodeId }
 
-    // 主页只负责节点选择、授权和发送启停请求，真实链路生命周期由 MyVpnService 管理。
+    // 首页只展示连接概览、路由模式和流量，节点管理统一放到配置页。
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -290,14 +220,6 @@ fun HomeScreen(
                         Text(
                             text = stringResource(id = R.string.app_name),
                             style = MaterialTheme.typography.titleLarge,
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onOpenImport) {
-                        Icon(
-                            imageVector = Icons.Filled.Add,
-                            contentDescription = "导入节点",
                         )
                     }
                 },
@@ -350,44 +272,7 @@ fun HomeScreen(
                 )
             }
             item {
-                SectionHeader(
-                    title = "节点",
-                    subtitle = "${nodes.size} 个可用节点",
-                    onTestAll = { mainViewModel.testAllLatencies() },
-                    onImport = onOpenImport,
-                )
-            }
-            if (nodes.isEmpty()) {
-                item {
-                    EmptyNodeState(onImport = onOpenImport)
-                }
-            } else {
-                itemsIndexed(
-                    items = nodes,
-                    key = { _, node -> node.id },
-                ) { index, node ->
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        NodeSelectionRow(
-                            node = node,
-                            selected = node.id == selectedNodeId,
-                            latencyState = latencyResults[node.id],
-                            showDivider = index < nodes.lastIndex,
-                            onClick = { selectNode(node) },
-                            onTestLatency = { mainViewModel.testNodeLatency(node) },
-                            onEdit = { editNode(node) },
-                            onDelete = { deleteNode(node) },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .widthIn(max = 640.dp),
-                        )
-                    }
-                }
-            }
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }
@@ -491,7 +376,7 @@ private fun ConnectionOverview(
                     } else {
                         selectedNode?.let { node ->
                             "${node.protocol.name}  ·  ${node.address}:${node.port}"
-                        } ?: "从下方列表选择一个节点"
+                        } ?: "请前往“配置”页选择节点"
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -637,263 +522,6 @@ private fun ConnectionActionBar(
 }
 
 @Composable
-private fun SectionHeader(
-    title: String,
-    subtitle: String,
-    onTestAll: () -> Unit,
-    onImport: () -> Unit,
-) {
-    Box(
-        modifier = Modifier.fillMaxWidth(),
-        contentAlignment = Alignment.Center,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .widthIn(max = 640.dp)
-                .padding(start = 16.dp, end = 8.dp, top = 18.dp, bottom = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(text = title, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            IconButton(onClick = onTestAll) {
-                Icon(
-                    imageVector = Icons.Filled.Refresh,
-                    contentDescription = "全部测延",
-                )
-            }
-            IconButton(onClick = onImport) {
-                Icon(
-                    imageVector = Icons.Filled.Add,
-                    contentDescription = "导入节点",
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun NodeEditDialog(
-    node: ProxyNode,
-    onDismiss: () -> Unit,
-    onSave: (ProxyNode) -> Unit,
-) {
-    var remark by remember(node.id) { mutableStateOf(node.remark) }
-    var address by remember(node.id) { mutableStateOf(node.address) }
-    var portText by remember(node.id) { mutableStateOf(node.port.toString()) }
-    val port = portText.toIntOrNull()
-    val canSave = address.isNotBlank() && port != null && port in 1..65535
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = "编辑节点") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(
-                    text = node.protocol.name,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                OutlinedTextField(
-                    value = remark,
-                    onValueChange = { remark = it },
-                    label = { Text(text = "备注") },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = address,
-                    onValueChange = { address = it.trim() },
-                    label = { Text(text = "服务器地址") },
-                    singleLine = true,
-                )
-                OutlinedTextField(
-                    value = portText,
-                    onValueChange = { portText = it.filter(Char::isDigit).take(5) },
-                    label = { Text(text = "端口") },
-                    singleLine = true,
-                    isError = portText.isNotBlank() && (port == null || port !in 1..65535),
-                )
-                Text(
-                    text = "认证信息不会在此处显示或修改。",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                enabled = canSave,
-                onClick = {
-                    onSave(
-                        node.copy(
-                            remark = remark.trim().ifBlank { address },
-                            address = address,
-                            port = requireNotNull(port),
-                        ),
-                    )
-                },
-            ) {
-                Text(text = "保存")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = "取消")
-            }
-        },
-    )
-}
-
-@Composable
-private fun NodeSelectionRow(
-    node: ProxyNode,
-    selected: Boolean,
-    latencyState: NodeLatencyState?,
-    showDivider: Boolean,
-    onClick: () -> Unit,
-    onTestLatency: () -> Unit,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    var menuExpanded by remember { mutableStateOf(false) }
-    Surface(
-        modifier = modifier,
-        color = if (selected) {
-            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
-        } else {
-            MaterialTheme.colorScheme.surface
-        },
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick),
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 6.dp, top = 12.dp, bottom = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Surface(
-                    modifier = Modifier.size(42.dp),
-                    shape = MaterialTheme.shapes.medium,
-                    color = if (selected) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.surfaceVariant
-                    },
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(
-                            text = protocolCode(node),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (selected) {
-                                MaterialTheme.colorScheme.onPrimary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                        )
-                    }
-                }
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 12.dp),
-                ) {
-                    // 列表展示基础识别信息，不展示 UUID、密码或订阅 URL。
-                    Text(
-                        text = node.remark.ifBlank { "未命名节点" },
-                        style = MaterialTheme.typography.titleSmall,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = "${node.protocol.name}  ·  ${node.address}:${node.port}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                LatencyLabel(latencyState = latencyState)
-                if (selected) {
-                    Icon(
-                        imageVector = Icons.Filled.CheckCircle,
-                        contentDescription = "已选中",
-                        modifier = Modifier
-                            .padding(start = 8.dp)
-                            .size(20.dp),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                }
-                Box {
-                    IconButton(onClick = { menuExpanded = true }) {
-                        Icon(
-                            imageVector = Icons.Filled.MoreVert,
-                            contentDescription = "节点操作",
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = menuExpanded,
-                        onDismissRequest = { menuExpanded = false },
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(text = "测试延迟") },
-                            leadingIcon = {
-                                Icon(imageVector = Icons.Filled.Refresh, contentDescription = null)
-                            },
-                            onClick = {
-                                menuExpanded = false
-                                onTestLatency()
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(text = "编辑节点") },
-                            leadingIcon = {
-                                Icon(imageVector = Icons.Filled.Edit, contentDescription = null)
-                            },
-                            onClick = {
-                                menuExpanded = false
-                                onEdit()
-                            },
-                        )
-                        DropdownMenuItem(
-                            text = { Text(text = "删除节点") },
-                            leadingIcon = {
-                                Icon(
-                                    imageVector = Icons.Filled.Delete,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error,
-                                )
-                            },
-                            onClick = {
-                                menuExpanded = false
-                                onDelete()
-                            },
-                        )
-                    }
-                }
-            }
-            if (showDivider) {
-                HorizontalDivider(
-                    modifier = Modifier.padding(start = 70.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant,
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun TrafficStatsPanel(
     uploadSpeed: Long,
     downloadSpeed: Long,
@@ -968,31 +596,6 @@ private fun MetricDivider() {
     )
 }
 
-@Composable
-private fun LatencyLabel(
-    latencyState: NodeLatencyState?,
-) {
-    val color = when {
-        latencyState?.errorMessage != null -> MaterialTheme.colorScheme.error
-        latencyState?.isTesting == true -> MaterialTheme.colorScheme.primary
-        latencyState?.latencyMs == null -> MaterialTheme.colorScheme.onSurfaceVariant
-        latencyState.latencyMs < 300L -> Color(0xFF2E7D32)
-        latencyState.latencyMs < 800L -> Color(0xFFF57C00)
-        else -> MaterialTheme.colorScheme.error
-    }
-
-    Text(
-        text = when {
-            latencyState?.isTesting == true -> "测量中"
-            latencyState?.errorMessage != null -> latencyState.errorMessage
-            latencyState?.latencyMs != null -> "${latencyState.latencyMs} ms"
-            else -> "未测延"
-        },
-        style = MaterialTheme.typography.bodySmall,
-        color = color,
-    )
-}
-
 private fun formatSpeed(bytesPerSecond: Long): String {
     return "${formatBytes(bytesPerSecond)}/s"
 }
@@ -1006,61 +609,5 @@ private fun formatBytes(bytes: Long): String {
         bytes >= mb -> String.format("%.2f MB", bytes / mb)
         bytes >= kb -> String.format("%.1f KB", bytes / kb)
         else -> "$bytes B"
-    }
-}
-
-@Composable
-private fun EmptyNodeState(
-    onImport: () -> Unit,
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface,
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(220.dp)
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Surface(
-                modifier = Modifier.size(56.dp),
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primaryContainer,
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Filled.Add,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(text = "还没有节点", style = MaterialTheme.typography.titleSmall)
-            Text(
-                text = "导入分享链接、二维码或订阅",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(modifier = Modifier.height(14.dp))
-            Button(onClick = onImport, shape = MaterialTheme.shapes.medium) {
-                Icon(imageVector = Icons.Filled.Add, contentDescription = null)
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(text = "导入节点")
-            }
-        }
-    }
-}
-
-private fun protocolCode(node: ProxyNode): String {
-    return when (node.protocol.name) {
-        "SHADOWSOCKS" -> "SS"
-        "TROJAN" -> "TR"
-        "VMESS" -> "VM"
-        "VLESS" -> "VL"
-        else -> node.protocol.name.take(2)
     }
 }
